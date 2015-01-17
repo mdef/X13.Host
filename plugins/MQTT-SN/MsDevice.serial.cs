@@ -66,6 +66,8 @@ namespace X13.Periphery {
       }
 
       public static void Open() {
+          _verbose.value = true;
+
         Log.Info("Search for MQTT-SN.serial devices");
         Topic dev=Topic.root.Get("/dev");
         dev.Get<string>("_declarer").value="DevFolder";
@@ -73,6 +75,8 @@ namespace X13.Periphery {
         ScanPorts(null, false);
       }
       public static void Rescan() {
+          _verbose.value = true;
+
         if(_scanBusy==0) {
           _startScan.Set();
         }
@@ -91,6 +95,8 @@ namespace X13.Periphery {
         SerialPort port=null;
         int length;
         bool found;
+        _verbose.value = true;
+
 
         List<string> pns=new List<string>();
         Topic dev=Topic.root.Get("/dev");
@@ -118,25 +124,46 @@ namespace X13.Periphery {
         } else {
           pns=pns.Intersect(SerialPort.GetPortNames()).ToList();
         }
+
+        pns = new List<string>();
+        string curFile = @"port.txt";
+        if (File.Exists(curFile))
+        {
+            var logFile = File.ReadAllLines(curFile);
+            pns = new List<string>(logFile);
+            //            readonlyList<string> LogList = new List<string>(logFile);
+        }
+
+
         for(int i=0; i<pns.Count; i++) {
+            //i = 0;
           if(_gates.Exists(z => z.name==pns[i])) {
             continue;
           }
-
+            
+            
+            Log.Debug("Itteration NR {0}",i);
           try {
+              _verbose.value = true;
+              //Log.Debug("Itteration tryCnt");
             port=new SerialPort(pns[i], 38400, Parity.None, 8, StopBits.One);
             port.ReadBufferSize=300;
             port.WriteBufferSize=300;
             port.Open();
             port.DiscardInBuffer();
+            
             SendRaw(port, disconnectAll, tmpBuf); // Send Disconnect
+            Log.Info("done with raw SendRaw(port, disconnectAll");
             Thread.Sleep(500);
             cnt=-1;
-            tryCnt=6;
+            tryCnt=30;
             escChar=false;
             length=-1;
             found=false;
+            
             while(--tryCnt>0) {
+                Log.Debug("in tryCnt {0}", tryCnt);    
+                _verbose.value = true;
               if(GetPacket(port, ref length, buf, ref cnt, ref escChar)) {
                 var msgTyp=(MsMessageType)(buf[0]>1?buf[1]:buf[3]);
                 if(msgTyp==MsMessageType.SEARCHGW || msgTyp==MsMessageType.DHCP_REQ) {   // Received Ack
@@ -155,14 +182,17 @@ namespace X13.Periphery {
               }
               Thread.Sleep(90);
             }
-            if(!found) {
-              port.Close();
-              continue;
+            if (!found)
+            {
+                Log.Debug("!found");
+                port.Close();
+                continue;
             }
+            else { return; }
           }
           catch(Exception ex) {
             if(_verbose.value) {
-              Log.Debug("MQTTS.Serial search on {0} - {1}", pns[i], ex.Message);
+                Log.Debug("MQTTS.Serial search on {0} - ex.Mes {1}", pns[i], ex.Message);
             }
             try {
               if(port!=null) {
@@ -240,18 +270,22 @@ namespace X13.Periphery {
         return false;
       }
       private static void SendRaw(SerialPort port, byte[] buf, byte[] tmp) {
+          Log.Debug("in UART_RAW_MQTTSN in raw, (1)", port.IsOpen);
         if(port==null || !port.IsOpen) {
           return;
         }
         int i, j=0;
         byte b;
         b=(byte)buf.Length;
+        
 #if UART_RAW_MQTTSN
+        Log.Debug("if");
         tmp[j++]=b;
         for(i=0; i<buf.Length; i++) {
           tmp[j++]=buf[i];
         }
 #else
+          Log.Debug("else");
         tmp[j++]=0xC0;
         if(b==0xC0 || b==0xDB) {
           tmp[j++]=0xDB;
@@ -269,10 +303,12 @@ namespace X13.Periphery {
         }
         tmp[j++]=0xC0;
 #endif
+        Log.Debug("result temp (0), (1)", tmp, j);
         port.Write(tmp, 0, j);
-        if(_verbose.value) {
+        _verbose.value = true;
+        //if(_verbose.value) {
           Log.Debug("s  {0}: {1}  {2}", port.PortName, BitConverter.ToString(buf, 0, buf.Length), MsMessage.Parse(buf, 0, buf.Length));
-        }
+        //}
       }
       private static void SendRaw(MsGSerial g, MsMessage msg, byte[] tmp) {
         if(g==null || g._port==null || !g._port.IsOpen || msg==null) {
