@@ -28,15 +28,20 @@ Note: edit file /opt/X13.Host/bin/port.txt if device not in port /dev/ttyUSB0
 **Server side**
 
 Normally you have Linux/Windows box where installed X13.Host engine.exe
-and inserted Arduino nano (atmega328) based device with [firmware](https://github.com/mdef/X13.devices/tree/nano-bin/devices/A1Sn12 "") for simplicity named as gate
+and inserted Arduino nano (atmega328) based device with [firmware](https://github.com/mdef/X13.devices/tree/nano-bin/devices/A1SC12 "") for simplicity named as gate
 
 **Remote devices (nodes) side**
 
-Arduino nano (atmega328) nodes with [firmware](https://github.com/mdef/X13.devices/tree/nano-bin/devices/A1SC12 "") wirelessly connected to gate.
+Arduino nano (atmega328) nodes with [firmware](https://github.com/mdef/X13.devices/tree/nano-bin/devices/A1Cn12 "") wirelessly connected to gate.
 
 
 **Client side**
 
 Windows box to run X13.Host [cc.exe](https://github.com/X13home/x13home.github.io/tree/bin_main/bin "") - this application gives you tree view
 of all x13 devices, nodes configuration and PLC editor. CC.exe is only client, all settings stored on server side.
+Client have to be configured with hostname/ip address, username, password.
+
+Username and password located on server side in directory /opt/X13.Host/data  file security.xst
+
+For further integration the same credentials could be used to access X13.Host from any MQTT subscribe client for example [Node-Red](http://nodered.org/ "")
 
